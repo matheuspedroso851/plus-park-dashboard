@@ -1,0 +1,242 @@
+import React, { useEffect, useMemo, useState } from 'react';
+
+export default function PlusParkSistema() { const [tipo, setTipo] = useState('Avulso'); const [hora, setHora] = useState(''); const [data, setData] = useState(new Date().toISOString().split('T')[0]); const [entradas, setEntradas] = useState([]);
+
+useEffect(() => { const dados = JSON.parse(localStorage.getItem('pluspark_entradas') || '[]'); setEntradas(dados); }, []);
+
+const salvarEntrada = () => { if (!hora) { alert('Selecione um horário'); return; }
+
+const novaEntrada = {
+  id: Date.now(),
+  data,
+  hora,
+  tipo,
+};
+
+const atualizadas = [...entradas, novaEntrada];
+setEntradas(atualizadas);
+localStorage.setItem('pluspark_entradas', JSON.stringify(atualizadas));
+
+setHora('');
+
+};
+
+const excluirEntrada = (id) => { const filtradas = entradas.filter((item) => item.id !== id); setEntradas(filtradas); localStorage.setItem('pluspark_entradas', JSON.stringify(filtradas)); };
+
+const estatisticas = useMemo(() => { const avulsos = entradas.filter((e) => e.tipo === 'Avulso').length; const mensalistas = entradas.filter((e) => e.tipo === 'Mensalista').length;
+
+const porHora = {};
+
+entradas.forEach((e) => {
+  const h = e.hora.split(':')[0] + 'h';
+  porHora[h] = (porHora[h] || 0) + 1;
+});
+
+let picoHora = '-';
+let picoValor = 0;
+
+Object.entries(porHora).forEach(([hora, valor]) => {
+  if (valor > picoValor) {
+    picoHora = hora;
+    picoValor = valor;
+  }
+});
+
+return {
+  total: entradas.length,
+  avulsos,
+  mensalistas,
+  picoHora,
+  picoValor,
+  porHora,
+};
+
+}, [entradas]);
+
+const horasOrdenadas = ['14h', '15h', '16h', '17h', '18h', '19h', '20h'];
+
+return ( <div className="min-h-screen bg-slate-100 p-6"> <div className="max-w-7xl mx-auto space-y-6">
+
+<div className="bg-gradient-to-r from-slate-900 to-emerald-700 rounded-3xl p-8 shadow-2xl text-white">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-5xl font-black tracking-tight">IMPACTA+</h1>
+          <p className="text-2xl text-emerald-300 font-bold">PLUS PARK</p>
+          <p className="mt-2 text-slate-200">
+            Sistema inteligente de monitoramento de estacionamento • Site operacional online
+          </p>
+        </div>
+
+        <div className="bg-white/10 backdrop-blur rounded-3xl p-6 text-center min-w-[220px]">
+          <p className="uppercase text-sm tracking-widest text-emerald-300">
+            Horário de Pico
+          </p>
+          <h2 className="text-5xl font-black mt-2">{estatisticas.picoHora}</h2>
+          <p className="text-slate-200 mt-1">
+            {estatisticas.picoValor} entradas
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+      <Card titulo="Total de Entradas" valor={estatisticas.total} cor="text-slate-900" />
+      <Card titulo="Avulsos" valor={estatisticas.avulsos} cor="text-blue-700" />
+      <Card titulo="Mensalistas" valor={estatisticas.mensalistas} cor="text-emerald-700" />
+      <Card titulo="Pico" valor={estatisticas.picoHora} cor="text-purple-700" />
+    </div>
+
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-200">
+        <h2 className="text-2xl font-bold text-slate-900 mb-6">
+          Registrar Entrada
+        </h2>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-sm font-semibold text-slate-600">Data</label>
+            <input
+              type="date"
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+              className="w-full mt-1 p-4 rounded-2xl border border-slate-300"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold text-slate-600">Tipo</label>
+            <select
+              value={tipo}
+              onChange={(e) => setTipo(e.target.value)}
+              className="w-full mt-1 p-4 rounded-2xl border border-slate-300"
+            >
+              <option>Avulso</option>
+              <option>Mensalista</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold text-slate-600">Horário</label>
+            <input
+              type="time"
+              value={hora}
+              onChange={(e) => setHora(e.target.value)}
+              className="w-full mt-1 p-4 rounded-2xl border border-slate-300"
+            />
+          </div>
+
+          <button
+            onClick={salvarEntrada}
+            className="w-full bg-emerald-600 hover:bg-emerald-500 transition-all text-white font-bold text-lg rounded-2xl p-4 shadow-lg"
+          >
+            Salvar Entrada
+          </button>
+        </div>
+      </div>
+
+      <div className="lg:col-span-2 bg-white rounded-3xl p-6 shadow-xl border border-slate-200">
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+          <div>
+            <h2 className="text-3xl font-black text-slate-900">
+              Fluxo Total do Estacionamento
+            </h2>
+            <p className="text-slate-500 mt-1">
+              Dashboard em tempo real • Site responsivo pronto para publicação
+            </p>
+          </div>
+
+          <div className="flex gap-4">
+            <Legenda cor="bg-slate-900" texto="Avulsos" />
+            <Legenda cor="bg-emerald-500" texto="Mensalistas" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-7 gap-4 items-end h-96">
+          {horasOrdenadas.map((horaAtual) => {
+            const total = estatisticas.porHora[horaAtual] || 0;
+
+            return (
+              <div key={horaAtual} className="flex flex-col items-center justify-end h-full">
+                <div className="text-2xl font-bold text-slate-900 mb-2">
+                  {total}
+                </div>
+
+                <div
+                  className="w-full max-w-[70px] rounded-t-3xl bg-gradient-to-t from-slate-900 to-emerald-500 shadow-xl transition-all"
+                  style={{ height: `${Math.max(total * 50, 10)}px` }}
+                ></div>
+
+                <div className="mt-4 font-bold text-slate-700">
+                  {horaAtual}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+
+    <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-200 overflow-auto">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div>
+          <h2 className="text-3xl font-black text-slate-900">
+            Site Plus Park • Histórico de Entradas
+          </h2>
+          <p className="text-slate-500">
+            Registros salvos localmente em tempo real
+          </p>
+        </div>
+
+        <button
+          onClick={() => {
+            localStorage.removeItem('pluspark_entradas');
+            setEntradas([]);
+          }}
+          className="bg-red-600 hover:bg-red-500 text-white font-semibold rounded-2xl px-5 py-3"
+        >
+          Limpar Dados
+        </button>
+      </div>
+
+      <table className="w-full border-collapse">
+        <thead>
+          <tr className="bg-slate-100 text-slate-700">
+            <th className="p-4 text-left rounded-l-2xl">Data</th>
+            <th className="p-4 text-left">Hora</th>
+            <th className="p-4 text-left">Tipo</th>
+            <th className="p-4 text-left rounded-r-2xl">Ação</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {entradas.map((entrada) => (
+            <tr key={entrada.id} className="border-b border-slate-100">
+              <td className="p-4">{entrada.data}</td>
+              <td className="p-4">{entrada.hora}</td>
+              <td className="p-4">
+                <span className={`px-3 py-1 rounded-full text-white text-sm font-bold ${entrada.tipo === 'Avulso' ? 'bg-slate-900' : 'bg-emerald-600'}`}>
+                  {entrada.tipo}
+                </span>
+              </td>
+              <td className="p-4">
+                <button
+                  onClick={() => excluirEntrada(entrada.id)}
+                  className="bg-red-500 hover:bg-red-400 text-white px-4 py-2 rounded-xl"
+                >
+                  Excluir
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+); }
+
+function Card({ titulo, valor, cor }) { return ( <div className="bg-white rounded-3xl p-6 shadow-xl border border-slate-200"> <p className="text-slate-500 text-sm font-semibold uppercase tracking-wide"> {titulo} </p> <h2 className={text-5xl font-black mt-3 ${cor}}> {valor} </h2> </div> ); }
+
+function Legenda({ cor, texto }) { return ( <div className="flex items-center gap-2"> <div className={w-4 h-4 rounded ${cor}}></div> <span className="font-semibold text-slate-700">{texto}</span> </div> ); }
